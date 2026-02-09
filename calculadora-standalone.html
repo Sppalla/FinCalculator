@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Custos por Kg — Fábrica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --emerald-500: #10b981;
+      --emerald-600: #059669;
+      --emerald-700: #047857;
+      --emerald-50: #ecfdf5;
+      --red-500: #ef4444;
+      --red-600: #dc2626;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --white: #ffffff;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(180deg, var(--gray-100) 0%, var(--gray-50) 100%);
+      color: var(--gray-800);
+      min-height: 100vh;
+      padding: 0 16px 32px;
+    }
+    .app { max-width: 560px; margin: 0 auto; }
+    .header { text-align: center; padding: 24px 16px 20px; }
+    .header__title { margin: 0 0 6px; font-size: 1.5rem; font-weight: 700; color: var(--emerald-700); }
+    .header__subtitle { margin: 0; font-size: 0.875rem; color: var(--gray-500); line-height: 1.4; }
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+    .card__title { margin: 0 0 12px; font-size: 0.75rem; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.03em; }
+    .card__hint { font-size: 0.7rem; color: var(--gray-500); margin-top: 3px; }
+    .field { margin-bottom: 12px; }
+    .field:last-of-type { margin-bottom: 0; }
+    .field label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--gray-700); margin-bottom: 3px; }
+    .field input {
+      width: 100%;
+      padding: 9px 11px;
+      font-size: 0.9375rem;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      background: var(--white);
+    }
+    .field input:focus {
+      outline: none;
+      border-color: var(--emerald-500);
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+    }
+    .total-line {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--gray-200);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--emerald-700);
+      display: flex;
+      justify-content: space-between;
+    }
+    .margins { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .margins label {
+      flex: 1 1 calc(33.333% - 5px);
+      min-width: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px 6px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--gray-600);
+      background: var(--gray-100);
+      border: 2px solid transparent;
+      border-radius: var(--radius);
+      cursor: pointer;
+      margin: 0;
+    }
+    .margins input { display: none; }
+    .margins input:checked + label {
+      background: var(--emerald-50);
+      border-color: var(--emerald-500);
+      color: var(--emerald-700);
+    }
+    .result-card {
+      background: linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%);
+      color: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-top: 18px;
+      box-shadow: var(--shadow-lg);
+    }
+    .result-card.negative {
+      background: linear-gradient(135deg, var(--red-500) 0%, var(--red-600) 100%);
+    }
+    .result-card__label { font-size: 0.75rem; opacity: 0.9; margin-bottom: 4px; }
+    .result-card__value { font-size: 1.6rem; font-weight: 700; }
+    .result-card__breakdown { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.25); font-size: 0.75rem; }
+    .result-card__breakdown div { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .result-card__breakdown div:last-child { margin-bottom: 0; }
+    .hidden { display: none !important; }
+    .rateio-info { font-size: 0.75rem; color: var(--gray-500); margin-top: 6px; }
+    .chart-container { position: relative; height: 220px; margin-top: 16px; }
+    .chart-title { font-size: 0.8125rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px; }
+    .ai-box {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 0.8125rem;
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
+    .ai-box h3 { margin: 0 0 10px; font-size: 0.875rem; color: var(--emerald-700); display: flex; align-items: center; gap: 6px; }
+    .ai-box ul { margin: 0; padding-left: 18px; }
+    .ai-box li { margin-bottom: 6px; }
+    .ai-box .badge { font-size: 0.65rem; background: var(--emerald-500); color: white; padding: 2px 6px; border-radius: 4px; }
+    .sugestao-preco { margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.2); border-radius: var(--radius); font-size: 0.8125rem; }
+    .outros-gastos { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--gray-200); }
+    .outros-gastos__titulo { font-size: 0.75rem; font-weight: 600; color: var(--gray-600); margin-bottom: 8px; }
+    .outro-gasto-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .outro-gasto-row:last-child { margin-bottom: 0; }
+    .outro-gasto-row .outro-nome { flex: 1; min-width: 0; padding: 9px 11px; font-size: 0.9375rem; border: 1px solid var(--gray-200); border-radius: var(--radius); }
+    .outro-gasto-row .outro-valor { width: 100px; flex-shrink: 0; padding: 9px 11px; font-size: 0.9375rem; border: 1px solid var(--gray-200); border-radius: var(--radius); }
+    .outro-gasto-row .outro-nome:focus, .outro-gasto-row .outro-valor:focus { outline: none; border-color: var(--emerald-500); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1 class="header__title">Calculadora de Custos por Kg</h1>
+      <p class="header__subtitle">Tudo por quilo: matéria prima (compra por kg), produção (quantos kg do item), venda por kg. Descubra se está no positivo ou no negativo.</p>
+    </header>
+
+    <section class="card">
+      <h2 class="card__title">Matéria prima (por kg)</h2>
+      <div class="field">
+        <label for="preco_mp_kg">Preço da matéria prima (R$/kg)</label>
+        <input type="text" id="preco_mp_kg" inputmode="decimal" placeholder="Ex: 8,00" value="">
+        <p class="card__hint">Quanto você paga por 1 kg da matéria prima (compra por kg).</p>
+      </div>
+      <div class="field">
+        <label for="rendimento">Quantos kg de matéria prima para produzir 1 kg do produto?</label>
+        <input type="text" id="rendimento" inputmode="decimal" placeholder="Ex: 1,2" value="">
+        <p class="card__hint">Ex.: 1,2 = para cada 1 kg do produto final você usa 1,2 kg de MP (perda/desperdício).</p>
+      </div>
+      <div class="outros-gastos" data-secao="mp">
+        <div class="outros-gastos__titulo">+ Outro gasto (R$/kg)</div>
+        <div class="outros-gastos-lista"></div>
+      </div>
+      <div class="total-line">
+        <span>Custo matéria prima por kg do produto</span>
+        <span id="custo-mp-kg">R$ 0,00/kg</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title">Máquina (por kg produzido)</h2>
+      <div class="field">
+        <label for="custo_hora_maq">Custo da máquina por hora (R$)</label>
+        <input type="text" id="custo_hora_maq" inputmode="decimal" placeholder="0,00" value="">
+        <p class="card__hint">Depreciação + energia + manutenção, rateado por hora de uso.</p>
+      </div>
+      <div class="field">
+        <label for="kg_por_hora">Quantos kg do produto a máquina produz por hora?</label>
+        <input type="text" id="kg_por_hora" inputmode="decimal" placeholder="Ex: 10" value="">
+        <p class="card__hint">Ex.: 10 = a máquina produz 10 kg do produto em 1 hora.</p>
+      </div>
+      <div class="outros-gastos" data-secao="maq">
+        <div class="outros-gastos__titulo">+ Outro gasto (R$/kg)</div>
+        <div class="outros-gastos-lista"></div>
+      </div>
+      <div class="total-line">
+        <span>Custo máquina por kg do produto</span>
+        <span id="custo-maq-kg">R$ 0,00/kg</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title">Embalagem (por kg)</h2>
+      <div class="field">
+        <label for="embalagem_kg">Custo da embalagem por kg do produto (R$/kg)</label>
+        <input type="text" id="embalagem_kg" inputmode="decimal" placeholder="Ex: 0,50" value="">
+        <p class="card__hint">Quanto gasta para embalar 1 kg do produto (caixa, plástico etc.).</p>
+      </div>
+      <div class="outros-gastos" data-secao="emb">
+        <div class="outros-gastos__titulo">+ Outro gasto (R$/kg)</div>
+        <div class="outros-gastos-lista"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title">Transporte até o destino (loja / cliente)</h2>
+      <div class="field">
+        <label for="km">Distância total da viagem (km)</label>
+        <input type="text" id="km" inputmode="decimal" placeholder="Ex: 80 (ida e volta)" value="">
+      </div>
+      <div class="field">
+        <label for="km_l">Consumo do veículo (km/l)</label>
+        <input type="text" id="km_l" inputmode="decimal" placeholder="Ex: 12" value="">
+      </div>
+      <div class="field">
+        <label for="preco_litro">Preço do combustível (R$/l)</label>
+        <input type="text" id="preco_litro" inputmode="decimal" placeholder="0,00" value="">
+      </div>
+      <div class="total-line"><span>Custo por viagem</span><span id="custo-viagem">R$ 0,00</span></div>
+      <div class="field" style="margin-top:10px">
+        <label for="kg_por_viagem">Kg entregues por viagem (média)</label>
+        <input type="text" id="kg_por_viagem" inputmode="decimal" placeholder="Ex: 100" value="">
+        <p class="card__hint">Quantos kg essa viagem leva em média → custo de transporte por kg.</p>
+      </div>
+      <div class="outros-gastos" data-secao="transp">
+        <div class="outros-gastos__titulo">+ Outro gasto (R$/kg)</div>
+        <div class="outros-gastos-lista"></div>
+      </div>
+      <div class="rateio-info">Custo de transporte por kg: <strong id="custo-transp-kg">R$ 0,00/kg</strong></div>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title">Custos operacionais do mês</h2>
+      <p class="card__hint" style="margin-bottom:8px">Rateamos pelo total de kg vendidos no mês.</p>
+      <div class="field"><label for="salarios">Salários (R$)</label><input type="text" id="salarios" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="agua">Água (R$)</label><input type="text" id="agua" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="luz">Luz (R$)</label><input type="text" id="luz" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="aluguel">Aluguel (R$)</label><input type="text" id="aluguel" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="reparos">Reparos / manutenção (R$)</label><input type="text" id="reparos" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="embalagens_mes">Embalagens — total do mês (R$)</label><input type="text" id="embalagens_mes" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="telefone">Telefone / Internet (R$)</label><input type="text" id="telefone" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="seguros">Seguros e licenças (R$)</label><input type="text" id="seguros" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="marketing">Marketing (R$)</label><input type="text" id="marketing" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="field"><label for="outros_op">Outros (R$)</label><input type="text" id="outros_op" inputmode="decimal" placeholder="0,00" value=""></div>
+      <div class="outros-gastos" data-secao="op">
+        <div class="outros-gastos__titulo">+ Outro gasto do mês (nome e valor em R$)</div>
+        <div class="outros-gastos-lista"></div>
+      </div>
+      <div class="total-line"><span>Total operacional no mês</span><span id="total-op">R$ 0,00</span></div>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title">Rateio por kg vendido</h2>
+      <div class="field">
+        <label for="kg_vendidos_mes">Quantidade de kg vendidos no mês (total)</label>
+        <input type="text" id="kg_vendidos_mes" inputmode="decimal" placeholder="Ex: 500" value="">
+        <p class="card__hint">Soma dos kg de todos os produtos que você vende no mês → divide o custo operacional.</p>
+      </div>
+      <div class="rateio-info">Custo operacional por kg: <strong id="custo-op-kg">R$ 0,00/kg</strong></div>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title">Preço de venda atual (por kg)</h2>
+      <div class="field">
+        <label for="preco_venda_kg">Quanto você vende hoje (R$/kg)</label>
+        <input type="text" id="preco_venda_kg" inputmode="decimal" placeholder="Ex: 25,00" value="">
+        <p class="card__hint">O preço que você cobra por kg desse produto na loja.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card__title">Margem de lucro desejada (para sugestão de preço)</h2>
+      <div class="margins">
+        <input type="radio" name="margem" id="m15" value="15"><label for="m15">15%</label>
+        <input type="radio" name="margem" id="m20" value="20" checked><label for="m20">20%</label>
+        <input type="radio" name="margem" id="m25" value="25"><label for="m25">25%</label>
+        <input type="radio" name="margem" id="m30" value="30"><label for="m30">30%</label>
+        <input type="radio" name="margem" id="m35" value="35"><label for="m35">35%</label>
+        <input type="radio" name="margem" id="m40" value="40"><label for="m40">40%</label>
+      </div>
+      <div class="field">
+        <label for="outra">Ou outra margem (%)</label>
+        <input type="text" id="outra" inputmode="numeric" placeholder="Ex: 50" value="">
+      </div>
+    </section>
+
+    <div class="result-card hidden" id="resultado">
+      <div class="result-card__label" id="resultado-titulo">Situação atual (por kg)</div>
+      <div class="result-card__value" id="preco-ou-diferenca">—</div>
+      <div class="result-card__breakdown">
+        <div><span>Matéria prima</span><span id="res-materia">R$ 0,00/kg</span></div>
+        <div><span>Máquina</span><span id="res-maq">R$ 0,00/kg</span></div>
+        <div><span>Embalagem</span><span id="res-emb">R$ 0,00/kg</span></div>
+        <div><span>Transporte</span><span id="res-transp">R$ 0,00/kg</span></div>
+        <div><span>Operacional (rateio)</span><span id="res-op">R$ 0,00/kg</span></div>
+        <div><span>Custo total por kg</span><span id="custo-total">R$ 0,00/kg</span></div>
+        <div><span>Preço de venda atual</span><span id="preco-atual">R$ 0,00/kg</span></div>
+        <div><span>Diferença (lucro ou prejuízo)</span><span id="diferenca">R$ 0,00/kg</span></div>
+      </div>
+      <div class="sugestao-preco hidden" id="sugestao-preco-box">
+        Para ter <span id="margem-pct">0</span>% de lucro, venda a <strong id="preco-sugerido">R$ 0,00/kg</strong>.
+      </div>
+    </div>
+
+    <section class="card hidden" id="card-graficos">
+      <h2 class="card__title">Composição do custo (por kg)</h2>
+      <div class="chart-title">Distribuição dos custos</div>
+      <div class="chart-container"><canvas id="chartPizza"></canvas></div>
+      <div class="chart-title" style="margin-top:14px">Custos por categoria (R$/kg)</div>
+      <div class="chart-container"><canvas id="chartBarras"></canvas></div>
+    </section>
+
+    <section class="card hidden" id="card-ia">
+      <div class="ai-box">
+        <h3>Sugestões para melhorar o lucro <span class="badge">IA</span></h3>
+        <ul id="sugestoes-ia"></ul>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function num(v) {
+      if (v === '' || v == null) return 0;
+      var n = parseFloat(String(v).replace(',', '.'));
+      return isNaN(n) ? 0 : n;
+    }
+    function fmt(x) { return x.toFixed(2).replace('.', ','); }
+
+    function criarLinhaOutroGasto() {
+      var row = document.createElement('div');
+      row.className = 'outro-gasto-row';
+      row.innerHTML = '<input type="text" class="outro-nome" placeholder="Ex.: Nome do gasto"><input type="text" class="outro-valor" inputmode="decimal" placeholder="0,00">';
+      return row;
+    }
+    function garantirUltimaLinhaVazia(bloco) {
+      var lista = bloco.querySelector('.outros-gastos-lista');
+      var rows = lista.querySelectorAll('.outro-gasto-row');
+      if (rows.length === 0) {
+        lista.appendChild(criarLinhaOutroGasto());
+        return;
+      }
+      var ultima = rows[rows.length - 1];
+      var val = ultima.querySelector('.outro-valor').value.trim();
+      if (val !== '') {
+        var nova = criarLinhaOutroGasto();
+        lista.appendChild(nova);
+        nova.querySelector('.outro-valor').addEventListener('input', function() { garantirUltimaLinhaVazia(bloco); atualizar(); });
+        nova.querySelector('.outro-nome').addEventListener('input', atualizar);
+      }
+    }
+    function somarOutros(secao) {
+      var bloco = document.querySelector('.outros-gastos[data-secao="' + secao + '"]');
+      if (!bloco) return 0;
+      var total = 0;
+      bloco.querySelectorAll('.outro-valor').forEach(function(inp) {
+        total += num(inp.value);
+      });
+      return total;
+    }
+
+    function totalOperacional() {
+      return num(document.getElementById('salarios').value) + num(document.getElementById('agua').value) +
+        num(document.getElementById('luz').value) + num(document.getElementById('aluguel').value) +
+        num(document.getElementById('reparos').value) + num(document.getElementById('embalagens_mes').value) +
+        num(document.getElementById('telefone').value) + num(document.getElementById('seguros').value) +
+        num(document.getElementById('marketing').value) + num(document.getElementById('outros_op').value) +
+        somarOutros('op');
+    }
+    function margemAtual() {
+      var outra = document.getElementById('outra').value.trim();
+      if (outra !== '') { var n = num(outra); if (n >= 0) return n; }
+      var r = document.querySelector('input[name="margem"]:checked');
+      return r ? num(r.value) : 20;
+    }
+
+    var chartPizzaInst = null;
+    var chartBarrasInst = null;
+
+    function atualizarGraficos(materia, maq, emb, transp, op) {
+      var card = document.getElementById('card-graficos');
+      var total = materia + maq + emb + transp + op;
+      if (total <= 0) { card.classList.add('hidden'); return; }
+      card.classList.remove('hidden');
+      var labels = ['Matéria prima', 'Máquina', 'Embalagem', 'Transporte', 'Operacional'];
+      var data = [materia, maq, emb, transp, op];
+      var cores = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+      if (chartPizzaInst) chartPizzaInst.destroy();
+      var ctxP = document.getElementById('chartPizza').getContext('2d');
+      chartPizzaInst = new Chart(ctxP, {
+        type: 'doughnut',
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: cores, borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
+      if (chartBarrasInst) chartBarrasInst.destroy();
+      var ctxB = document.getElementById('chartBarras').getContext('2d');
+      chartBarrasInst = new Chart(ctxB, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: 'R$/kg', data: data, backgroundColor: cores }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { x: { beginAtZero: true }, y: { ticks: { font: { size: 11 } } } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function gerarSugestoes(materia, maq, emb, transp, op, custoTotalKg, precoAtual, kgViagem, kgVendidos) {
+      var lista = [];
+      var total = materia + maq + emb + transp + op;
+      if (total <= 0) return lista;
+      var pMateria = (materia / total) * 100;
+      var pMaq = (maq / total) * 100;
+      var pTransp = (transp / total) * 100;
+      var pOp = (op / total) * 100;
+      var diferenca = precoAtual - custoTotalKg;
+      if (diferenca < 0) {
+        lista.push('Você está <strong>no negativo</strong>: o preço de venda por kg está abaixo do custo total por kg. Suba o preço ou reduza custos para sair do prejuízo.');
+      }
+      if (pTransp > 20 && transp > 0) {
+        lista.push('Transporte pesa no custo por kg. Aumente os <strong>kg por viagem</strong> (entregar mais por viagem) ou reduza distância para baixar o custo por kg.');
+      }
+      if (pMaq > 25 && maq > 0) {
+        lista.push('Custo da máquina por kg é alto. Aumente os <strong>kg produzidos por hora</strong> ou reduza o custo por hora (energia, manutenção).');
+      }
+      if (pMateria > 40) {
+        lista.push('Matéria prima é o maior custo. Busque <strong>compra em maior quantidade</strong> (melhor preço por kg) ou outros fornecedores.');
+      }
+      if (pOp > 25 && kgVendidos > 0) {
+        lista.push('Custos operacionais pesam no rateio. Aumentar o <strong>volume de kg vendidos no mês</strong> reduz o custo operacional por kg.');
+      }
+      if (rendimento > 1.1) {
+        lista.push('Rendimento maior que 1 significa perda de matéria prima. Melhorar o processo (menos desperdício) reduz o custo da MP por kg do produto.');
+      }
+      if (lista.length === 0) {
+        lista.push('Custos bem distribuídos. Para ganhar mais, suba o preço por kg ou aumente o volume de vendas.');
+      }
+      return lista;
+    }
+
+    var rendimento = 0;
+
+    function atualizar() {
+      var precoMpKg = num(document.getElementById('preco_mp_kg').value);
+      rendimento = num(document.getElementById('rendimento').value);
+      if (rendimento <= 0) rendimento = 1;
+      var custoMpPorKg = precoMpKg * rendimento + somarOutros('mp');
+
+      var custoHoraMaq = num(document.getElementById('custo_hora_maq').value);
+      var kgPorHora = num(document.getElementById('kg_por_hora').value);
+      var custoMaqPorKg = (kgPorHora > 0 ? custoHoraMaq / kgPorHora : 0) + somarOutros('maq');
+
+      var embalagemKg = num(document.getElementById('embalagem_kg').value) + somarOutros('emb');
+
+      var km = num(document.getElementById('km').value);
+      var kmL = num(document.getElementById('km_l').value);
+      var precoLitro = num(document.getElementById('preco_litro').value);
+      var custoPorViagem = (kmL > 0 && precoLitro > 0) ? (km / kmL) * precoLitro : 0;
+      var kgPorViagem = Math.max(0, num(document.getElementById('kg_por_viagem').value));
+      var custoTranspPorKg = (kgPorViagem > 0 ? custoPorViagem / kgPorViagem : 0) + somarOutros('transp');
+
+      var totalOp = totalOperacional();
+      var kgVendidosMes = Math.max(0, num(document.getElementById('kg_vendidos_mes').value));
+      var custoOpPorKg = kgVendidosMes > 0 ? totalOp / kgVendidosMes : 0;
+
+      var precoVendaKg = num(document.getElementById('preco_venda_kg').value);
+      var margem = margemAtual();
+
+      var custoTotalKg = custoMpPorKg + custoMaqPorKg + embalagemKg + custoTranspPorKg + custoOpPorKg;
+      var diferenca = precoVendaKg - custoTotalKg;
+      var precoSugerido = custoTotalKg * (1 + margem / 100);
+
+      document.getElementById('custo-mp-kg').textContent = 'R$ ' + fmt(custoMpPorKg) + '/kg';
+      document.getElementById('custo-maq-kg').textContent = 'R$ ' + fmt(custoMaqPorKg) + '/kg';
+      document.getElementById('custo-viagem').textContent = 'R$ ' + fmt(custoPorViagem);
+      document.getElementById('custo-transp-kg').textContent = 'R$ ' + fmt(custoTranspPorKg) + '/kg';
+      document.getElementById('total-op').textContent = 'R$ ' + fmt(totalOp);
+      document.getElementById('custo-op-kg').textContent = 'R$ ' + fmt(custoOpPorKg) + '/kg';
+
+      var el = document.getElementById('resultado');
+      var cardGraficos = document.getElementById('card-graficos');
+      var cardIa = document.getElementById('card-ia');
+      if (custoTotalKg > 0) {
+        el.classList.remove('hidden');
+        el.classList.toggle('negative', diferenca < 0);
+        document.getElementById('resultado-titulo').textContent = diferenca >= 0 ? 'Você está no positivo (lucro por kg)' : 'Você está no negativo (prejuízo por kg)';
+        document.getElementById('preco-ou-diferenca').textContent = (diferenca >= 0 ? 'Lucro: R$ ' : 'Prejuízo: R$ ') + fmt(Math.abs(diferenca)) + '/kg';
+        document.getElementById('res-materia').textContent = 'R$ ' + fmt(custoMpPorKg) + '/kg';
+        document.getElementById('res-maq').textContent = 'R$ ' + fmt(custoMaqPorKg) + '/kg';
+        document.getElementById('res-emb').textContent = 'R$ ' + fmt(embalagemKg) + '/kg';
+        document.getElementById('res-transp').textContent = 'R$ ' + fmt(custoTranspPorKg) + '/kg';
+        document.getElementById('res-op').textContent = 'R$ ' + fmt(custoOpPorKg) + '/kg';
+        document.getElementById('custo-total').textContent = 'R$ ' + fmt(custoTotalKg) + '/kg';
+        document.getElementById('preco-atual').textContent = 'R$ ' + fmt(precoVendaKg) + '/kg';
+        document.getElementById('diferenca').textContent = (diferenca >= 0 ? 'R$ ' : '-R$ ') + fmt(Math.abs(diferenca)) + '/kg';
+        var sugBox = document.getElementById('sugestao-preco-box');
+        sugBox.classList.remove('hidden');
+        document.getElementById('margem-pct').textContent = margem;
+        document.getElementById('preco-sugerido').textContent = 'R$ ' + fmt(precoSugerido) + '/kg';
+
+        atualizarGraficos(custoMpPorKg, custoMaqPorKg, embalagemKg, custoTranspPorKg, custoOpPorKg);
+        var sugestoes = gerarSugestoes(custoMpPorKg, custoMaqPorKg, embalagemKg, custoTranspPorKg, custoOpPorKg, custoTotalKg, precoVendaKg, kgPorViagem, kgVendidosMes);
+        var ul = document.getElementById('sugestoes-ia');
+        ul.innerHTML = '';
+        sugestoes.forEach(function(s) {
+          var li = document.createElement('li');
+          li.innerHTML = s;
+          ul.appendChild(li);
+        });
+        cardIa.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+        cardGraficos.classList.add('hidden');
+        cardIa.classList.add('hidden');
+      }
+    }
+
+    document.querySelectorAll('.outros-gastos').forEach(function(bloco) {
+      var lista = bloco.querySelector('.outros-gastos-lista');
+      var row = criarLinhaOutroGasto();
+      lista.appendChild(row);
+      row.querySelector('.outro-valor').addEventListener('input', function() {
+        garantirUltimaLinhaVazia(bloco);
+        atualizar();
+      });
+      row.querySelector('.outro-nome').addEventListener('input', atualizar);
+    });
+
+    var ids = ['preco_mp_kg','rendimento','custo_hora_maq','kg_por_hora','embalagem_kg','km','km_l','preco_litro','kg_por_viagem',
+      'salarios','agua','luz','aluguel','reparos','embalagens_mes','telefone','seguros','marketing','outros_op','kg_vendidos_mes','preco_venda_kg'];
+    ids.forEach(function(id) { document.getElementById(id).addEventListener('input', atualizar); });
+    document.getElementById('outra').addEventListener('input', function() {
+      document.querySelectorAll('input[name="margem"]').forEach(function(r) { r.checked = false; });
+      atualizar();
+    });
+    document.querySelectorAll('input[name="margem"]').forEach(function(r) {
+      r.addEventListener('change', function() { document.getElementById('outra').value = ''; atualizar(); });
+    });
+    atualizar();
+  </script>
+</body>
+</html>

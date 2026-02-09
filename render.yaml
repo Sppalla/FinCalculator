@@ -1,0 +1,8 @@
+# Configuração para deploy no Render (Static Site)
+# Documentação: https://render.com/docs/static-sites
+
+services:
+  - type: web
+    name: calculadora-pricing
+    runtime: static
+    staticPublishPath: .
